@@ -12,4 +12,5 @@ public class ResponseConstants {
     public static final String USER_LOGOUT_FAILED = "User Logout Failed";
     public static final String INVALID_DATA = "Invalid Data";
     public static final String INVALID_REQUEST = "Invalid Request";
+    public static final String INVALID_USERNAME_OR_PASSWORD = "INVALID_USERNAME_OR_PASSWORD";
 }

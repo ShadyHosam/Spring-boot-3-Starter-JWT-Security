@@ -9,13 +9,21 @@ import com.spring.ready.com.entities.User;
 import com.spring.ready.com.repositories.UserRepo;
 import com.spring.ready.com.util.Role;
 import com.spring.ready.com.util.Utils;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jdk.jshell.execution.Util;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -40,7 +48,8 @@ public class AuthenticationService {
                     userRepository.save(getUserFromRequest(request));
                     var validUser = userRepository.findByEmail(request.getEmail()).get();
                     var jwtToken = jwtService.generateToken(validUser);
-                    System.out.println(jwtToken);
+
+                   // System.out.println(jwtToken);
                     return Utils.getResponseEntity(ResponseConstants.USER_SIGNUP_SUCCESS+ " " + jwtToken, HttpStatus.OK);
                 } else {
                     return Utils.getResponseEntity(ResponseConstants.USER_ALREADY_EXISTS, HttpStatus.BAD_REQUEST);
@@ -53,19 +62,26 @@ public class AuthenticationService {
         }
         return Utils.getResponseEntity(ResponseConstants.SOME_THING_WENT_WRONG, HttpStatus.INTERNAL_SERVER_ERROR);
     }
-    public AuthenticationResponse authenticate(AuthenticationRequest request) {
-     authenticationManager.authenticate(
-             new UsernamePasswordAuthenticationToken(
-                     request.getEmail(),request.getPassword()
-             )
-     );
-     var user = userRepository.findByEmail(request.getEmail()).orElseThrow();
-        var jwtToken = jwtService.generateToken(user);
+    public ResponseEntity<String> login(AuthenticationRequest request) {
+        System.out.println(request.getEmail());
+        try {
+            // Authenticate the user
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(), request.getPassword()
+                    )
+            );
+            var user = userRepository.findByEmail(request.getEmail()).get();
+            var jwtToken = jwtService.generateToken(user);
+            System.out.println(user);
 
-        return AuthenticationResponse.builder()
-                .accessToken(jwtToken)
-                .build();
-
+            return ResponseEntity.ok(jwtToken);
+        } catch (AuthenticationException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Something went wrong");
+        }
     }
 
 
